@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
+import { subdomainRedirect } from "@/utils/middlewares/subdomain";
 
 export async function middleware(request: NextRequest) {
   const handlers = [
+    subdomainRedirect, // redirección según subdominio
     updateSession, // lógica de sesión
   ];
 
