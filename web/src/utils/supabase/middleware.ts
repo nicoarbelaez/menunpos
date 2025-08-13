@@ -43,7 +43,6 @@ export async function updateSession(request: NextRequest) {
   const pathname = requestUrl.pathname + requestUrl.search;
 
   // Si el usuario no está autenticado y no accede a /login ni a /auth, redirigir a login.
-  console.log(request.nextUrl)
   if (
     !user &&
     !pathname.startsWith("/login") &&
