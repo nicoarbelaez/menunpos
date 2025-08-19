@@ -1,20 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/utils/supabase/middleware";
 import { subdomainRedirect } from "@/utils/middlewares/subdomain";
+import { validationSession } from "@/utils/middlewares/validation-session";
 
 export async function middleware(request: NextRequest) {
+  // handlers: deben devolver NextResponse SOLO si quieren terminar la request
   const handlers = [
-    subdomainRedirect, // redirección según subdominio
-    updateSession, // lógica de sesión
+    validationSession, // comprueba tenant (cuando aplica) y sesión/rol
+    subdomainRedirect, // redirección por prefijo según tipo de cuenta
+    updateSession, // actualiza/propaga session cookies (último)
   ];
 
   for (const handler of handlers) {
     const result = await handler(request);
-    if (result) {
-      return result; // si devuelve algo (redirect/response), se detiene aquí
+    // Sólo si result es un NextResponse *con intención de terminar*,
+    // devolvemos y paramos la cadena. Si el handler devolvió undefined,
+    // seguimos con siguiente handler.
+    if (result instanceof NextResponse) {
+      return result;
     }
   }
-  return NextResponse.next(); // si ninguno respondió, continua normalmente
+
+  // Si ningún handler devolvió un NextResponse terminante, continuamos.
+  return NextResponse.next();
 }
 
 export const config = {
