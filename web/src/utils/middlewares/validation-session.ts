@@ -1,28 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { AccountType } from "@/types/profiles";
-
-interface RedirectToLoginParams {
-  request: NextRequest;
-  error?: string;
-}
-
-export const redirectToLogin = ({ request, error }: RedirectToLoginParams) => {
-  const nextUrl = request.nextUrl;
-
-  if (nextUrl.pathname.startsWith("/login")) {
-    return;
-  }
-
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("next", nextUrl.pathname + nextUrl.search);
-
-  if (error) {
-    loginUrl.searchParams.set("error", error);
-  }
-
-  return NextResponse.redirect(loginUrl);
-};
+import { cookies } from "next/headers";
+import { redirectToLogin } from "@/utils/redirects";
 
 export async function validationSession(request: NextRequest) {
   const nextUrl = request.nextUrl;
@@ -78,6 +58,17 @@ export async function validationSession(request: NextRequest) {
   if (profileError || !profile) {
     return redirectToLogin({ request, error: "profile_not_found" });
   }
+
+  // Establecer cookie en el response
+  const cookieStore = await cookies();
+  cookieStore.set("account_type", profile.account_type, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 1,
+  });
+  request.cookies.set("account_type", profile.account_type);
 
   // Determinar allowed según subdominio:
   // - si subdomain === 'app' => debe ser client o both
